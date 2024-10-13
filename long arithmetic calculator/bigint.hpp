@@ -1,26 +1,28 @@
+// bigint.hpp
+#ifndef BIGINT_HPP
+#define BIGINT_HPP
+
 #include <vector>
 #include <cstdint>
-
-using std::vector;
+#include <iostream>
 
 class BigInt {
-    
-private:
-    vector<int32_t> digits;
-    int32_t MAX_DIGITS = 5;
-    int32_t BASE = INT32_MAX;
 public:
-    BigInt(int a = 0);
-    BigInt(const BigInt &x);
-    
-    void complement();
-    BigInt add(const BigInt &x) const;
-    BigInt sub(const BigInt &x) const;
-    void print_result(const BigInt &x) const;
+    std::vector<int32_t> digits;
 
-    //void neg();
-    //BigInt &mul(const BigInt &x) const;
-    //BigInt &div(const BigInt &x) const;
-    //BigInt &mod(const BigInt &x) const;
-    //BigInt &pow(const BigInt &x) const;
+    BigInt();
+    BigInt(int64_t value);
+    BigInt(const BigInt &x);
+
+    BigInt add(const BigInt &a) const;
+    
+    BigInt sub(const BigInt &a) const;
+    void print_result() const;
+    void negate();
+    void normalize();
+
+    friend std::ostream & operator<<(std::ostream &out, const BigInt &x);
 };
+
+
+#endif
