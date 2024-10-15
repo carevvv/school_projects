@@ -29,6 +29,7 @@ BigInt::BigInt(const BigInt &x) {
     digits = x.digits;
 }
 
+
 BigInt::BigInt(const std::string &value) {
     bool is_negative = false;
     std::string hex_value = value;
@@ -66,9 +67,44 @@ BigInt::BigInt(const std::string &value) {
 }
 
 
+void 
+BigInt::negate() {
+    for (size_t i = 0; i < digits.size(); ++i) {
+        digits[i] = ~digits[i];
+    }
+
+    int64_t carry = 1;
+    for (size_t i = 0; i < digits.size(); ++i) {
+        uint64_t sum = (static_cast<uint32_t>(digits[i]) & 0xFFFFFFFFULL) + carry;
+        digits[i] = static_cast<int32_t>(sum & 0xFFFFFFFF);
+        carry = sum >> 32;
+        if (carry == 0) {
+            break;
+        }
+    }
+
+    if (carry != 0) {
+        digits.push_back(static_cast<int32_t>(carry));
+    }
+}
+
+
+void 
+BigInt::print_result() const {
+    std::cout << "Bits: ";
+    for (int i = digits.size() - 1; i >= 0; --i) {
+        uint32_t word = static_cast<uint32_t>(digits[i]);
+        for (int j = 31; j >= 0; --j) {
+            std::cout << ((word >> j) & 1);
+        }
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+}
+
 
 BigInt 
-BigInt::add(const BigInt &a) const {
+BigInt::operator+(const BigInt &a) const {
     BigInt result;
     size_t maxSize = std::max(this->digits.size(), a.digits.size());
     result.digits.resize(maxSize, 0);
@@ -108,47 +144,108 @@ BigInt::add(const BigInt &a) const {
 }
 
 
-void 
-BigInt::negate() {
-    for (size_t i = 0; i < digits.size(); ++i) {
-        digits[i] = ~digits[i];
-    }
-
-    int64_t carry = 1;
-    for (size_t i = 0; i < digits.size(); ++i) {
-        uint64_t sum = (static_cast<uint32_t>(digits[i]) & 0xFFFFFFFFULL) + carry;
-        digits[i] = static_cast<int32_t>(sum & 0xFFFFFFFF);
-        carry = sum >> 32;
-        if (carry == 0) {
-            break;
-        }
-    }
-
-    if (carry != 0) {
-        digits.push_back(static_cast<int32_t>(carry));
-    }
-}
-
-
 BigInt 
-BigInt::sub(const BigInt &a) const {
+BigInt::operator-(const BigInt &a) const {
     BigInt neg_a = a;
     neg_a.negate();
-    return this->add(neg_a);
+    return this->operator+(neg_a);
 }
 
 
-void 
-BigInt::print_result() const {
-    std::cout << "Bits: ";
-    for (int i = digits.size() - 1; i >= 0; --i) {
-        uint32_t word = static_cast<uint32_t>(digits[i]);
-        for (int j = 31; j >= 0; --j) {
-            std::cout << ((word >> j) & 1);
-        }
-        std::cout << " ";
+BigInt
+BigInt::operator*(const BigInt &x) const {
+    BigInt result;
+    for (size_t i = 0; i < x.digits.size(); ++i) {
+        result = result + (*this * x.digits[i]);
     }
-    std::cout << std::endl;
+    return result;
+}
+
+BigInt
+BigInt::operator+() const {
+    return *this;
+}
+
+
+BigInt
+BigInt::operator-() const {
+    BigInt result = *this;
+    result.negate();
+    return result;
+}
+
+
+bool 
+BigInt::operator==(const BigInt &x) const {
+    if (this->digits.size() != x.digits.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < this->digits.size(); ++i) {
+        if (this->digits[i] != x.digits[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+bool
+BigInt::operator!=(const BigInt &x) const {
+    return !(*this == x);
+}
+
+
+bool 
+BigInt::operator>(const BigInt &x) const {
+    if (this->digits[this->digits.size() - 1] == 0 && x.digits[x.digits.size() - 1] == -1) {
+        return true;
+    } else if (this->digits[this->digits.size() - 1] == -1 && x.digits[x.digits.size() - 1] == 0) {
+        return false;
+    }
+    if (this->digits.size() > x.digits.size() && (this->digits[this->digits.size() - 1] == 0 && x.digits[x.digits.size() - 1] == 0)) {
+        return true;
+    } else if (this->digits.size() < x.digits.size() && (this->digits[this->digits.size() - 1] == 0 && x.digits[x.digits.size() - 1] == 0)){
+        return false;
+    } 
+    if (this->digits.size() < x.digits.size() && (this->digits[this->digits.size() - 1] == -1 && x.digits[x.digits.size() - 1] == -1)) {
+        return true;
+    } else if (this->digits.size() > x.digits.size() && (this->digits[this->digits.size() - 1] == -1 && x.digits[x.digits.size() - 1] == -1)){
+        return false;
+    } 
+
+    for (int i = this->digits.size() - 1; i >= 0; --i) {
+        if (this->digits[i] < x.digits[i]) {
+            return false;
+        } else if (this->digits[i] > x.digits[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool 
+BigInt::operator<(const BigInt &x) const {
+    if (*this == x) {
+        return false;
+    }
+    return !(*this > x);
+}   
+
+
+bool 
+BigInt::operator>=(const BigInt &x) const {
+    bool e = (*this > x);
+    bool f = (*this == x);
+    return e || f;
+}
+
+
+bool 
+BigInt::operator<=(const BigInt &x) const {
+    bool e = (*this < x);
+    bool f = (*this == x);
+    return e || f;
 }
 
 
@@ -185,15 +282,14 @@ std::ostream & operator<<(std::ostream &out, const BigInt &x) {
 }
 
 
+
 int 
 main(void) {
-    BigInt a("-80000000");
-    BigInt b = INT32_MIN;
+    BigInt a("1");
+    BigInt b("2");
     a.print_result();
     b.print_result();
-    BigInt e = a.add(b);
-    e.print_result();
-    std::cout << e << std::endl;
+    BigInt c = (a + b > a - b);
+    std::cout << c << std::endl;
     return 0;
 }
-

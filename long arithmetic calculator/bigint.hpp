@@ -6,19 +6,28 @@
 #include <iostream>
 
 class BigInt {
-public:
+private:
     std::vector<int32_t> digits;
-
+public:
     BigInt();
-    BigInt(const std::string &value);
     BigInt(int64_t value);
     BigInt(const BigInt &x);
+    BigInt(const std::string &value);
 
-    BigInt add(const BigInt &a) const;
-    
-    BigInt sub(const BigInt &a) const;
-    void print_result() const;
     void negate();
+    void print_result() const;
+
+    BigInt operator+(const BigInt &x) const;
+    BigInt operator-(const BigInt &x) const;
+    BigInt operator*(const BigInt &x) const;
+    BigInt operator+() const;
+    BigInt operator-() const;
+    bool operator>(const BigInt &x) const;
+    bool operator<(const BigInt &x) const;
+    bool operator>=(const BigInt &x) const;
+    bool operator<=(const BigInt &x) const;
+    bool operator==(const BigInt &x) const;
+    bool operator!= (const BigInt &x) const;
 
     friend std::ostream & operator<<(std::ostream &out, const BigInt &x);
 };
