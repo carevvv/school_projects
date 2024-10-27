@@ -11,17 +11,9 @@ BigInt::BigInt() {
 }
 
 
-BigInt::BigInt(int64_t value) {
-    while (value != 0 && value != -1) {
-        int32_t word = static_cast<int32_t>(value & 0xFFFFFFFF);
-        digits.push_back(word);
-        value >>= 32;
-    }
-    if (value == -1) {
-        digits.push_back(-1);
-    } else if (digits.empty()) {
-        digits.push_back(0);
-    }
+BigInt::BigInt(int value) {
+    int32_t word = static_cast<int32_t>(value & 0xFFFFFFFF);
+    digits.push_back(word);
 }
 
 
@@ -75,7 +67,7 @@ BigInt::negate() {
 
     int64_t carry = 1;
     for (size_t i = 0; i < digits.size(); ++i) {
-        uint64_t sum = (static_cast<uint32_t>(digits[i]) & 0xFFFFFFFFULL) + carry;
+        uint64_t sum = (static_cast<uint32_t>(digits[i]) & 0xFFFFFFFF) + carry;
         digits[i] = static_cast<int32_t>(sum & 0xFFFFFFFF);
         carry = sum >> 32;
         if (carry == 0) {
@@ -152,14 +144,68 @@ BigInt::operator-(const BigInt &a) const {
 }
 
 
-BigInt
-BigInt::operator*(const BigInt &x) const {
-    BigInt result;
-    for (size_t i = 0; i < x.digits.size(); ++i) {
-        result = result + (*this * x.digits[i]);
+BigInt BigInt::operator*(const BigInt &x) const {
+    const size_t SMALL_THRESHOLD = 1;
+    if (this->digits.size() <= SMALL_THRESHOLD || x.digits.size() <= SMALL_THRESHOLD) {
+        BigInt result;
+        result.digits.resize(this->digits.size() + x.digits.size(), 0);
+
+        for (size_t i = 0; i < this->digits.size(); i++) {
+            int64_t carry = 0;
+            for (size_t j = 0; j < x.digits.size() || carry != 0; j++) {
+                int64_t current = result.digits[i + j]
+                    + int64_t(this->digits[i]) * (j < x.digits.size() ? x.digits[j] : 0)
+                    + carry;
+                result.digits[i + j] = int32_t(current & 0xFFFFFFFF);
+                carry = current >> 32;
+            }
+        }
+
+        while (result.digits.size() > 1 && result.digits.back() == 0)
+            result.digits.pop_back();
+
+        return result;
     }
+
+    size_t halfSize = std::max(this->digits.size(), x.digits.size()) / 2;
+
+    BigInt a, b, c, d;
+
+    if (this->digits.size() <= halfSize) {
+        a.digits.clear();
+        b.digits = this->digits;
+    } else {
+        a.digits = std::vector<int32_t>(this->digits.begin() + halfSize, this->digits.end());
+        b.digits = std::vector<int32_t>(this->digits.begin(), this->digits.begin() + halfSize);
+    }
+
+    if (x.digits.size() <= halfSize) {
+        c.digits.clear();
+        d.digits = x.digits;
+    } else {
+        c.digits = std::vector<int32_t>(x.digits.begin() + halfSize, x.digits.end());
+        d.digits = std::vector<int32_t>(x.digits.begin(), x.digits.begin() + halfSize);
+    }
+
+
+    BigInt ac = a * c;
+    BigInt bd = b * d;
+
+    BigInt a_plus_b = a + b;
+    BigInt c_plus_d = c + d;
+    BigInt mid = a_plus_b * c_plus_d - ac - bd;
+
+    ac.digits.insert(ac.digits.end(), 2 * halfSize, 0);  
+    mid.digits.insert(mid.digits.end(), halfSize, 0);   
+
+    BigInt result = ac + mid + bd;
+
+    while (result.digits.size() > 1 && result.digits.back() == 0)
+        result.digits.pop_back();
+
     return result;
 }
+
 
 BigInt
 BigInt::operator+() const {
@@ -285,11 +331,8 @@ std::ostream & operator<<(std::ostream &out, const BigInt &x) {
 
 int 
 main(void) {
-    BigInt a("1");
-    BigInt b("2");
+    BigInt a = INT32_MIN;
     a.print_result();
-    b.print_result();
-    BigInt c = (a + b > a - b);
-    std::cout << c << std::endl;
+    std::cout << a << std::endl;
     return 0;
 }

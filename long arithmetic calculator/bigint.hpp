@@ -10,7 +10,7 @@ private:
     std::vector<int32_t> digits;
 public:
     BigInt();
-    BigInt(int64_t value);
+    BigInt(int value);
     BigInt(const BigInt &x);
     BigInt(const std::string &value);
 
