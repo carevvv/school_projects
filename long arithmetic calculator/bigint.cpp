@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <iomanip>
+#include <stack>
 
 
 BigInt::BigInt() {
@@ -144,65 +145,118 @@ BigInt::operator-(const BigInt &a) const {
 }
 
 
-BigInt BigInt::operator*(const BigInt &x) const {
-    const size_t SMALL_THRESHOLD = 1;
-    if (this->digits.size() <= SMALL_THRESHOLD || x.digits.size() <= SMALL_THRESHOLD) {
-        BigInt result;
-        result.digits.resize(this->digits.size() + x.digits.size(), 0);
+BigInt 
+BigInt::operator*(const BigInt& y) const {
+    const size_t base = 32;
+    BigInt x = *this;
+    BigInt zero = 0;
+    if (x == zero || y == zero) {
+        return BigInt(0);
+    }
+    size_t len = std::max(x.digits.size(), y.digits.size());
+    size_t result_size = 2 * len;
+    
+    bool x_negative = !x.digits.empty() && x.digits.back() < 0;
+    bool y_negative = !y.digits.empty() && y.digits.back() < 0;
+    
+    BigInt y_copy = y;
+    if (x_negative) x.negate();
+    if (y_negative) y_copy.negate();
 
-        for (size_t i = 0; i < this->digits.size(); i++) {
-            int64_t carry = 0;
-            for (size_t j = 0; j < x.digits.size() || carry != 0; j++) {
-                int64_t current = result.digits[i + j]
-                    + int64_t(this->digits[i]) * (j < x.digits.size() ? x.digits[j] : 0)
-                    + carry;
-                result.digits[i + j] = int32_t(current & 0xFFFFFFFF);
-                carry = current >> 32;
+    size_t power = 1;
+    while (power < len) power *= 2;
+    x.digits.resize(power, 0);
+    y_copy.digits.resize(power, 0);
+    len = power;
+
+    BigInt result;
+    result.digits.resize(result_size, 0);
+    
+    std::stack<std::tuple<BigInt, BigInt, size_t, size_t, bool>> tasks;
+    tasks.push(std::make_tuple(x, y_copy, 0, len, false));
+    
+    while (!tasks.empty()) {
+        BigInt current_x, current_y;
+        size_t start, size;
+        bool end;
+        
+        std::tie(current_x, current_y, start, size, end) = tasks.top();
+        tasks.pop();
+
+        if (end) {
+            for (size_t i = 0; i < size; i++) {
+                size_t half = size / 2;
+                result.digits[start + i] += current_x.digits[i];
+                result.digits[start + size + i] += current_y.digits[i];
+                if (i < size - 1) {
+                    result.digits[start + half + i] -= current_x.digits[i];
+                    result.digits[start + half + i] -= current_y.digits[i];
+                }
             }
+            continue;
         }
 
-        while (result.digits.size() > 1 && result.digits.back() == 0)
+        if (size <= base) {
+            for (size_t i = 0; i < size; ++i) {
+                uint64_t carry = 0;
+                for (size_t j = 0; j < size; ++j) {
+                    uint64_t current = static_cast<uint64_t>(static_cast<uint32_t>(current_x.digits[i])) *
+                                     static_cast<uint64_t>(static_cast<uint32_t>(current_y.digits[j])) +
+                                     static_cast<uint64_t>(static_cast<uint32_t>(result.digits[start + i + j])) +
+                                     carry;
+                    
+                    result.digits[start + i + j] = static_cast<int32_t>(current & 0xFFFFFFFF);
+                    carry = current >> 32;
+                }
+                if (carry > 0 && start + i + size < result.digits.size()) {
+                    result.digits[start + i + size] += static_cast<int32_t>(carry);
+                }
+            }
+        } else {
+            size_t half_size = size / 2;
+ 
+            BigInt a, b, c, d;
+     
+            a.digits.resize(half_size);
+            b.digits.resize(half_size);
+            for (size_t i = 0; i < half_size; ++i) {
+                a.digits[i] = current_x.digits[i + half_size];
+                b.digits[i] = current_x.digits[i];
+            }
+            c.digits.resize(half_size);
+            d.digits.resize(half_size);
+            for (size_t i = 0; i < half_size; ++i) {
+                c.digits[i] = current_y.digits[i + half_size];
+                d.digits[i] = current_y.digits[i];
+            }
+
+            BigInt sum_x = a + b;
+            BigInt sum_y = c + d;
+            
+            tasks.push({current_x, current_y, start, size, true});
+            tasks.push({sum_x, sum_y, start + half_size, half_size, false});
+            tasks.push({b, d, start, half_size, false});
+            tasks.push({a, c, start + size, half_size, false});
+        }
+    }
+    
+    for (size_t i = 0; i < result.digits.size() - 1; ++i) {
+        uint64_t current = static_cast<uint64_t>(static_cast<uint32_t>(result.digits[i]));
+        result.digits[i] = static_cast<int32_t>(current & 0xFFFFFFFF);
+        result.digits[i + 1] += static_cast<int32_t>(current >> 32);
+    }
+
+    if ((x_negative) || (y_negative) && result.digits.size() > 1) {
+        while (result.digits.size() > 1 && 
+               ((result.digits.back() == 0 && (result.digits[result.digits.size() - 2] & 0x80000000) == 0) ||
+                (result.digits.back() == -1 && (result.digits[result.digits.size() - 2] & 0x80000000) != 0x0))) {
             result.digits.pop_back();
-
-        return result;
+        }
     }
-
-    size_t halfSize = std::max(this->digits.size(), x.digits.size()) / 2;
-
-    BigInt a, b, c, d;
-
-    if (this->digits.size() <= halfSize) {
-        a.digits.clear();
-        b.digits = this->digits;
-    } else {
-        a.digits = std::vector<int32_t>(this->digits.begin() + halfSize, this->digits.end());
-        b.digits = std::vector<int32_t>(this->digits.begin(), this->digits.begin() + halfSize);
+    if (x_negative != y_negative) {
+        result.negate();
     }
-
-    if (x.digits.size() <= halfSize) {
-        c.digits.clear();
-        d.digits = x.digits;
-    } else {
-        c.digits = std::vector<int32_t>(x.digits.begin() + halfSize, x.digits.end());
-        d.digits = std::vector<int32_t>(x.digits.begin(), x.digits.begin() + halfSize);
-    }
-
-
-    BigInt ac = a * c;
-    BigInt bd = b * d;
-
-    BigInt a_plus_b = a + b;
-    BigInt c_plus_d = c + d;
-    BigInt mid = a_plus_b * c_plus_d - ac - bd;
-
-    ac.digits.insert(ac.digits.end(), 2 * halfSize, 0);  
-    mid.digits.insert(mid.digits.end(), halfSize, 0);   
-
-    BigInt result = ac + mid + bd;
-
-    while (result.digits.size() > 1 && result.digits.back() == 0)
-        result.digits.pop_back();
-
+    
     return result;
 }
 
@@ -295,7 +349,8 @@ BigInt::operator<=(const BigInt &x) const {
 }
 
 
-std::ostream & operator<<(std::ostream &out, const BigInt &x) {
+std::ostream & 
+operator<<(std::ostream &out, const BigInt &x) {
     if (x.digits.empty()) {
         out << "0x0";
         return out;
@@ -331,8 +386,9 @@ std::ostream & operator<<(std::ostream &out, const BigInt &x) {
 
 int 
 main(void) {
-    BigInt a = INT32_MIN;
-    a.print_result();
-    std::cout << a << std::endl;
+    BigInt a("fffffffffffffffffeefefeffffffefefee");
+    BigInt b("-123fffffffffff333ffefeffffffefefee");
+    BigInt c = a * b;
+    std::cout << a * b << std::endl; //-123fffffffffff333feb99dadbffefde754451dd2020dd9eb96f24424010203424144
     return 0;
 }
