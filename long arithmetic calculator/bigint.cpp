@@ -15,6 +15,9 @@ BigInt::BigInt() {
 BigInt::BigInt(int value) {
     int32_t word = static_cast<int32_t>(value & 0xFFFFFFFF);
     digits.push_back(word);
+    if (word == INT32_MIN) {
+        digits.push_back(-1);
+    }
 }
 
 
@@ -386,9 +389,10 @@ operator<<(std::ostream &out, const BigInt &x) {
 
 int 
 main(void) {
-    BigInt a("fffffffffffffffffeefefeffffffefefee");
-    BigInt b("-123fffffffffff333ffefeffffffefefee");
+    BigInt a = -INT32_MAX;
+    BigInt b = INT32_MIN;
     BigInt c = a * b;
-    std::cout << a * b << std::endl; //-123fffffffffff333feb99dadbffefde754451dd2020dd9eb96f24424010203424144
+    std::cout << c << std::endl;
+    c.print_result();
     return 0;
 }
