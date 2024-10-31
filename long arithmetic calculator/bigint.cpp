@@ -150,7 +150,6 @@ BigInt::operator-(const BigInt &a) const {
 
 BigInt 
 BigInt::operator*(const BigInt& y) const {
-    const size_t base = 32;
     BigInt x = *this;
     BigInt zero = 0;
     if (x == zero || y == zero) {
@@ -174,74 +173,23 @@ BigInt::operator*(const BigInt& y) const {
 
     BigInt result;
     result.digits.resize(result_size, 0);
-    
-    std::stack<std::tuple<BigInt, BigInt, size_t, size_t, bool>> tasks;
-    tasks.push(std::make_tuple(x, y_copy, 0, len, false));
-    
-    while (!tasks.empty()) {
-        BigInt current_x, current_y;
-        size_t start, size;
-        bool end;
-        
-        std::tie(current_x, current_y, start, size, end) = tasks.top();
-        tasks.pop();
 
-        if (end) {
-            for (size_t i = 0; i < size; i++) {
-                size_t half = size / 2;
-                result.digits[start + i] += current_x.digits[i];
-                result.digits[start + size + i] += current_y.digits[i];
-                if (i < size - 1) {
-                    result.digits[start + half + i] -= current_x.digits[i];
-                    result.digits[start + half + i] -= current_y.digits[i];
-                }
-            }
-            continue;
-        }
-
-        if (size <= base) {
-            for (size_t i = 0; i < size; ++i) {
-                uint64_t carry = 0;
-                for (size_t j = 0; j < size; ++j) {
-                    uint64_t current = static_cast<uint64_t>(static_cast<uint32_t>(current_x.digits[i])) *
-                                     static_cast<uint64_t>(static_cast<uint32_t>(current_y.digits[j])) +
-                                     static_cast<uint64_t>(static_cast<uint32_t>(result.digits[start + i + j])) +
-                                     carry;
-                    
-                    result.digits[start + i + j] = static_cast<int32_t>(current & 0xFFFFFFFF);
-                    carry = current >> 32;
-                }
-                if (carry > 0 && start + i + size < result.digits.size()) {
-                    result.digits[start + i + size] += static_cast<int32_t>(carry);
-                }
-            }
-        } else {
-            size_t half_size = size / 2;
- 
-            BigInt a, b, c, d;
-     
-            a.digits.resize(half_size);
-            b.digits.resize(half_size);
-            for (size_t i = 0; i < half_size; ++i) {
-                a.digits[i] = current_x.digits[i + half_size];
-                b.digits[i] = current_x.digits[i];
-            }
-            c.digits.resize(half_size);
-            d.digits.resize(half_size);
-            for (size_t i = 0; i < half_size; ++i) {
-                c.digits[i] = current_y.digits[i + half_size];
-                d.digits[i] = current_y.digits[i];
-            }
-
-            BigInt sum_x = a + b;
-            BigInt sum_y = c + d;
+    for (size_t i = 0; i < len; ++i) {
+        uint64_t carry = 0;
+        for (size_t j = 0; j < len; ++j) {
+            uint64_t current = static_cast<uint64_t>(static_cast<uint32_t>(x.digits[i])) *
+                            static_cast<uint64_t>(static_cast<uint32_t>(y_copy.digits[j])) +
+                            static_cast<uint64_t>(static_cast<uint32_t>(result.digits[i + j])) +
+                            carry;
             
-            tasks.push({current_x, current_y, start, size, true});
-            tasks.push({sum_x, sum_y, start + half_size, half_size, false});
-            tasks.push({b, d, start, half_size, false});
-            tasks.push({a, c, start + size, half_size, false});
+            result.digits[i + j] = static_cast<int32_t>(current & 0xFFFFFFFF);
+            carry = current >> 32;
+        }
+        if (carry > 0 && i + len < result.digits.size()) {
+            result.digits[i + len] += static_cast<int32_t>(carry);
         }
     }
+       
     
     for (size_t i = 0; i < result.digits.size() - 1; ++i) {
         uint64_t current = static_cast<uint64_t>(static_cast<uint32_t>(result.digits[i]));
@@ -389,10 +337,8 @@ operator<<(std::ostream &out, const BigInt &x) {
 
 int 
 main(void) {
-    BigInt a = -INT32_MAX;
-    BigInt b = INT32_MIN;
-    BigInt c = a * b;
-    std::cout << c << std::endl;
-    c.print_result();
+    BigInt a("ffffffffffffffffffffffffffffffff");
+    BigInt b("-fffffffffffefefefffffffffffefef");
+    std::cout << a * b << std::endl;
     return 0;
 }
