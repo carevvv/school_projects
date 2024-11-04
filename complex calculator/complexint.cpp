@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 
 
 ComplexInt::ComplexInt(double a, double b) {
@@ -13,6 +14,149 @@ ComplexInt::ComplexInt(double a, double b) {
 ComplexInt::ComplexInt(const ComplexInt &x) {
     this->re = x.re;
     this->im = x.im;
+}
+
+
+ComplexInt::ComplexInt(const std::string& value) {
+    bool re_negative = false;
+    bool im_negative = false;
+    std::string result = value;
+
+    result.erase(std::remove_if(result.begin(), result.end(), ::isspace), result.end());
+    if (result.size() == 0) {
+        this->re = 0;
+        this->im = 0;
+        return;
+    }
+
+    if (result[0] == '-') {
+        re_negative = true;
+        result = result.substr(1);
+    } else if (result[0] == '+') {
+        result = result.substr(1);
+    }
+
+    if (result.find('e') == std::string::npos && result.find('E') == std::string::npos) {
+        size_t im_neg = result.find('-');
+        size_t im_pos = result.find('+');
+        size_t start;
+        if (im_neg != std::string::npos) {
+            im_negative = true;
+            start = im_neg + 1;
+        } else if (im_pos != std::string::npos) {
+            im_negative = false;
+            start = im_pos + 1;
+        } else {
+            size_t i = result.find('i');
+            if (i == std::string::npos) {
+                this->re = std::stold(result) * (re_negative ? -1 : 1);
+                this->im = 0;
+                return;
+            }
+            else {
+                if (result.size() == 1) {
+                    this->re = 0;
+                    this->im = 1 * (re_negative ? -1 : 1);
+                    return;
+                }
+                this->im = std::stold(result.substr(0, i)) * (re_negative ? -1 : 1);
+                this->re = 0;
+                return;
+            }
+        }
+
+        size_t end = result.find('i');
+        if (end == std::string::npos) {
+            std::cerr << "Error: Invalid complex number format. Example: \"-12 + 2i\"" << std::endl;
+            exit(1);
+        }
+        this->re = std::stold(result.substr(0, start)) * (re_negative ? -1 : 1);
+        
+        if (result.substr(start, end - start).size() == 0) {
+            this->im = 1 * (im_negative ? -1 : 1);
+        } else {
+            this->im = std::stold(result.substr(start, end - start)) * (im_negative ? -1 : 1);
+        }
+    } else {
+        size_t i_pos = result.find('i');
+
+        if (i_pos == std::string::npos) {
+            std::string real_part = result;
+
+            if (!real_part.empty() && (real_part.back() == 'f' || real_part.back() == 'F')) {
+                real_part = real_part.substr(0, real_part.size() - 1);
+            }
+
+            try {
+                this->re = std::stold(real_part) * (re_negative ? -1 : 1);
+                this->im = 0;
+                return;
+            } catch (const std::exception& e) {
+                std::cerr << "Error: Invalid complex number format (real part). " << e.what() << std::endl;
+                exit(1);
+            }
+        } else {
+            std::string pre_i = result.substr(0, i_pos);
+            std::string post_i = result.substr(i_pos + 1);
+            if (!post_i.empty()) {
+                std::cerr << "Error: Invalid complex number format. Unexpected characters after 'i'." << std::endl;
+                exit(1);
+            }
+
+            std::string real_part, imag_part;
+            size_t split_pos = std::string::npos;
+            bool im_sign_found = false; 
+
+
+            for (size_t pos = pre_i.length(); pos > 0; --pos) {
+                if ((pre_i[pos - 1] == '+' || pre_i[pos - 1] == '-') &&
+                    (pos == 1 || (pre_i[pos - 2] != 'e' && pre_i[pos - 2] != 'E'))) {
+                    split_pos = pos - 1;
+                    im_sign_found = true;
+                    im_negative = (pre_i[pos - 1] == '-') ? true : false;
+                    break;
+                }
+            }
+
+            if (split_pos != std::string::npos) {
+                real_part = pre_i.substr(0, split_pos);
+                imag_part = pre_i.substr(split_pos);
+            } else {
+                im_negative = re_negative;
+                real_part = "0";
+                imag_part = pre_i;
+            }
+
+            if (!imag_part.empty() && (imag_part[0] == '+' || imag_part[0] == '-')) {
+                imag_part = imag_part.substr(1);
+            }
+
+            if (!real_part.empty() && (real_part.back() == 'f' || real_part.back() == 'F')) {
+                real_part = real_part.substr(0, real_part.size() - 1);
+            }
+            if (!imag_part.empty() && (imag_part.back() == 'f' || imag_part.back() == 'F')) {
+                imag_part = imag_part.substr(0, imag_part.size() - 1);
+            }
+
+            if (imag_part.empty()) {
+                imag_part = "1";
+            }
+
+            try {
+                real_part.erase(std::remove(real_part.begin(), real_part.end(), ' '), real_part.end());
+                if (real_part.empty() || real_part == "0") {
+                    this->re = 0;
+                } else {
+                    this->re = std::stold(real_part) * (re_negative ? -1 : 1);
+                }
+
+                this->im = std::stold(imag_part) * (im_negative ? -1 : 1);
+            } catch (const std::exception& e) {
+                std::cerr << "Error: Invalid complex number format. " << e.what() << std::endl;
+                exit(1);
+            }
+        }
+    }
 }
 
 
@@ -70,29 +214,26 @@ ComplexInt::operator!=(const ComplexInt &x) const {
 
 std::ostream & operator<<(std::ostream &out, const ComplexInt &x) {
     if (x.im < 0) {
-        out << x.re << " - " << -x.im << "i";
+        if (x.im == -1) {
+            out << x.re << " - i";
+        } else {
+            out << x.re << " - " << -x.im << "i";
+        }
         return out;
     }
-    out << x.re << " + " << x.im << "i";
+    if (x.im == 1) {
+        std::cout << x.re << " + i";
+        return out;
+    } else {
+        out << x.re << " + " << x.im << "i";
+    }
     return out;
 }
 
 
 int
 main (void) {
-    ComplexInt a;
-    ComplexInt b(12, 2);
-    ComplexInt c = a + b;
-    ComplexInt d = a - b;
-    ComplexInt e = a * b;
-    ComplexInt f = a / b;
-    bool g = (a == b);
-    bool h = (a != b);
-    std::cout << c << std::endl;
-    std::cout << d << std::endl;
-    std::cout << e << std::endl;
-    std::cout << f << std::endl;
-    std::cout << g << std::endl;
-    std::cout << h << std::endl;
+    ComplexInt a("0");
+    std::cout << a << std::endl;
     return 0;
 }

@@ -9,6 +9,7 @@ private:
 public:
     ComplexInt(double a = 0, double b = 0);
     ComplexInt(const ComplexInt &value);
+    ComplexInt(const std::string &value);
 
     ComplexInt operator+(const ComplexInt &x) const;
     ComplexInt operator-(const ComplexInt &x) const;
