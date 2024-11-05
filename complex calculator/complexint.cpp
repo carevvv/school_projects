@@ -5,19 +5,19 @@
 #include <algorithm>
 
 
-ComplexInt::ComplexInt(double a, double b) {
+Complex::Complex(double a, double b) {
     this->re = a;
     this->im = b;
 }
 
 
-ComplexInt::ComplexInt(const ComplexInt &x) {
+Complex::Complex(const Complex &x) {
     this->re = x.re;
     this->im = x.im;
 }
 
 
-ComplexInt::ComplexInt(const std::string& value) {
+Complex::Complex(const std::string& value) {
     bool re_negative = false;
     bool im_negative = false;
     std::string result = value;
@@ -160,59 +160,124 @@ ComplexInt::ComplexInt(const std::string& value) {
 }
 
 
-ComplexInt
-ComplexInt::operator+(const ComplexInt &x) const {
-    return ComplexInt(this->re + x.re, this->im + x.im);
+Complex
+Complex::operator+(const Complex &x) const {
+    return Complex(this->re + x.re, this->im + x.im);
 }
 
 
-ComplexInt
-ComplexInt::operator-(const ComplexInt &x) const {
-    return ComplexInt(this->re - x.re, this->im - x.im);
+Complex
+Complex::operator+(const int x) const {
+    return Complex(this->re + x, this->im);
 }
 
 
-ComplexInt 
-ComplexInt::operator*(const ComplexInt &x) const {
-    return ComplexInt(this->re * x.re - this->im * x.im, this->re * x.im + this->im * x.re);
+Complex
+Complex::operator-(const Complex &x) const {
+    return Complex(this->re - x.re, this->im - x.im);
+}
+
+Complex 
+Complex::operator-(const int x) const {
+    return Complex(this->re - x, this->im);
 }
 
 
-ComplexInt 
-ComplexInt::operator/(const ComplexInt &x) const {
+Complex 
+Complex::operator*(const Complex &x) const {
+    return Complex(this->re * x.re - this->im * x.im, this->re * x.im + this->im * x.re);
+}
+
+
+Complex 
+Complex::operator*(const int x) const {
+    return Complex(this->re * x, this->im * x);
+}
+
+
+Complex 
+Complex::operator/(const Complex &x) const {
     if (pow(x.re, 2) + pow(x.im, 2) == 0) {
         std::cerr << "Error: Division by zero" << std::endl;
         exit(1);
     }
-    return ComplexInt((this->re * x.re + this->im * x.im) / (pow(x.re, 2) + pow(x.im, 2)), (this->im * x.re - this->re * x.im) / (pow(x.re, 2) + pow(x.im, 2)));
+    return Complex((this->re * x.re + this->im * x.im) / (pow(x.re, 2) + pow(x.im, 2)), (this->im * x.re - this->re * x.im) / (pow(x.re, 2) + pow(x.im, 2)));
 }
 
 
-ComplexInt 
-ComplexInt::operator+() const {
+Complex
+Complex::operator/(const int x) const {
+    if (x == 0) {
+        std::cerr << "Error: Division by zero" << std::endl;
+        exit(1);
+    }
+    return Complex(this->re / x, this->im / x);
+}
+
+
+Complex 
+Complex::operator+() const {
     return *this;
 }
 
 
-ComplexInt 
-ComplexInt::operator-() const {
-    return ComplexInt(-re, -im);
+Complex 
+Complex::operator-() const {
+    return Complex(-re, -im);
+}
+
+
+Complex 
+Complex::operator^(const int x) const {
+        double magnitude = sqrt(this->re * this->re + this->im * this->im); 
+        double angle = atan2(im, re);             
+        double magnitude_n = pow(magnitude, x);  
+        double angle_n = angle * x;
+
+        double real_part = magnitude_n * cos(angle_n); 
+        double imag_part = magnitude_n * sin(angle_n);
+
+        return Complex(real_part, imag_part);
 }
 
 
 bool 
-ComplexInt::operator==(const ComplexInt &x) const {
+Complex::operator==(const Complex &x) const {
     return this->re == x.re && this->im == x.im;
 }
 
 
 bool
-ComplexInt::operator!=(const ComplexInt &x) const {
+Complex::operator!=(const Complex &x) const {
     return !(*this == x);
 }   
 
 
-std::ostream & operator<<(std::ostream &out, const ComplexInt &x) {
+bool 
+Complex::operator>(const Complex &x) const {    
+    return (re * re + im * im) > (x.re * x.re + x.im * x.im);
+}
+
+
+bool
+Complex::operator<(const Complex &x) const {
+    return (re * re + im * im) < (x.re * x.re + x.im * x.im);
+}
+
+
+bool
+Complex::operator>=(const Complex &x) const {
+    return (re * re + im * im) >= (x.re * x.re + x.im * x.im);
+}
+
+
+bool 
+Complex::operator<=(const Complex &x) const {
+    return (re * re + im * im) <= (x.re * x.re + x.im * x.im);
+}
+
+
+std::ostream & operator<<(std::ostream &out, const Complex &x) {
     if (x.im < 0) {
         if (x.im == -1) {
             out << x.re << " - i";
@@ -233,7 +298,26 @@ std::ostream & operator<<(std::ostream &out, const ComplexInt &x) {
 
 int
 main (void) {
-    ComplexInt a("0");
+    Complex a("2 + i");
+    Complex b("3 - i");
     std::cout << a << std::endl;
+    std::cout << b << std::endl;
+    Complex c = a + b;
+    Complex d = a - b;
+    Complex e = a * b;
+    Complex f = a / b;
+    Complex g = a ^ 2;
+    std::cout << c << std::endl;
+    std::cout << d << std::endl;
+    std::cout << e << std::endl;
+    std::cout << f << std::endl;
+    std::cout << g << std::endl;
+
+    std::cout << (a == b) << std::endl;
+    std::cout << (a != b) << std::endl;
+    std::cout << (a > b) << std::endl;
+    std::cout << (a < b) << std::endl;
+    std::cout << (a >= b) << std::endl;
+    std::cout << (a <= b) << std::endl;
     return 0;
 }

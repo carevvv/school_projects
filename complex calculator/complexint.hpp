@@ -1,28 +1,44 @@
-#ifndef COMPLEXINT_HPP
-#define COMPLEXINT_HPP
+#ifndef COMPLEX_H 
+#define COMPLEX_H 
+ 
+#include <string>  
+  
+using std::string;  
+  
+class Complex {  
+private:  
+    double re; 
+    double im; 
+public:  
+    Complex(double re = 0, double im = 0); 
+    Complex(const Complex &x);  
+    Complex(const string &s);  
+      
+    Complex operator+(const Complex &x) const;  
+    Complex operator+(const int x) const;  
 
-#include <iostream>
+    Complex operator-(const Complex &x) const;  
+    Complex operator-(const int x) const;  
 
-class ComplexInt {
-private:
-    double re, im; // re - real, im - imaginary
-public:
-    ComplexInt(double a = 0, double b = 0);
-    ComplexInt(const ComplexInt &value);
-    ComplexInt(const std::string &value);
+    Complex operator*(const Complex &x) const;  
+    Complex operator*(const int x) const;  
+  
+    Complex operator/(const Complex &x) const;  
+    Complex operator/(const int x) const;   
 
-    ComplexInt operator+(const ComplexInt &x) const;
-    ComplexInt operator-(const ComplexInt &x) const;
-    ComplexInt operator*(const ComplexInt &x) const;
-    ComplexInt operator/(const ComplexInt &x) const;
-    ComplexInt operator+() const;
-    ComplexInt operator-() const;
-
-    bool operator==(const ComplexInt &x) const;
-    bool operator!=(const ComplexInt &x) const;
-
-    friend std::ostream & operator<<(std::ostream &out, const ComplexInt &x);
-};
-
-
-#endif 
+    Complex operator^(const int x) const;  
+  
+    Complex operator+() const;  
+    Complex operator-() const;  
+  
+    bool operator==(const Complex &x) const;  
+    bool operator!=(const Complex &x) const;  
+    bool operator>(const Complex &x) const;  
+    bool operator<(const Complex &x) const;  
+    bool operator>=(const Complex &x) const;  
+    bool operator<=(const Complex &x) const;  
+    
+    friend std::ostream &operator<<(std::ostream &out, const Complex &x);  
+}; 
+ 
+#endif
