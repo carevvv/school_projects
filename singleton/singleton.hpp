@@ -1,16 +1,23 @@
-namespace Singleton {
-    template<typename T>
-    class Singleton {
-        public:
-            Singleton<T>(const <T>&);
-            Singleton<T>(T&& x);
+#ifndef SINGLETON_HPP
+#define SINGLETON_HPP
 
-            Singleton <T>(const Singleton<T>&) = delete;
-            Singleton<T>& operator=(const Singleton<T>&) = delete;
+#include <mutex>
 
-            ~Singleton<T>();
+class Singleton {
+public:
+    static Singleton& getInstance();
 
-        private:
-            
-    };
-}
+    void showMessage() const;
+
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
+
+    Singleton(Singleton&&) = delete;
+    Singleton& operator=(Singleton&&) = delete;
+
+private:
+    Singleton();
+    ~Singleton();
+};
+
+#endif
