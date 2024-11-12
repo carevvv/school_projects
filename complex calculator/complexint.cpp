@@ -298,15 +298,15 @@ std::ostream & operator<<(std::ostream &out, const Complex &x) {
 
 int
 main (void) {
-    Complex a("2 + i");
-    Complex b("3 - i");
+    Complex a("1 + 2i");
+    Complex b("1 - 2i");
     std::cout << a << std::endl;
     std::cout << b << std::endl;
     Complex c = a + b;
     Complex d = a - b;
     Complex e = a * b;
     Complex f = a / b;
-    Complex g = a ^ 2;
+    Complex g = a ^ 0;
     std::cout << c << std::endl;
     std::cout << d << std::endl;
     std::cout << e << std::endl;
