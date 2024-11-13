@@ -71,6 +71,7 @@ namespace pointers {
         T *data;
         size_t *num_shared;
         size_t *num_weak;
+        template <typename U> friend class shared_ptr;
     };
 };
 

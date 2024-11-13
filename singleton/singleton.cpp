@@ -2,40 +2,29 @@
 #include <iostream>
 #include <stdexcept>
 
-Singleton& Singleton::getInstance() {
-    try {
-        static Singleton instance;
-        return instance;
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Exception during Singleton initialization: " << e.what() << std::endl;
-        throw;
-    }
-    catch (...) {
-        std::cerr << "Unknown exception during Singleton initialization." << std::endl;
-        throw;
-    }
+
+template <typename T>
+T& Singleton<T>::getInstance() {
+    static T instance;
+    std::cout << "Singleton instance returned." << std::endl;
+    return instance;
 }
 
-Singleton::Singleton() {
+template <typename T>
+Singleton<T>::Singleton() {
     std::cout << "Singleton instance created." << std::endl;
 }
 
-Singleton::~Singleton() {
+template <typename T>
+Singleton<T>::~Singleton() {
     std::cout << "Singleton instance destroyed." << std::endl;
 }
-
-void
-Singleton::showMessage() const {
-    std::cout << "Hello from Singleton!" << std::endl;
-}
-
 
 
 int 
 main(void) {
     try {
-        Singleton::getInstance().showMessage();
+        Singleton<int>::getInstance(); 
     }
     catch (...) {
         return EXIT_FAILURE;

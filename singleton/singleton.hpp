@@ -3,11 +3,10 @@
 
 #include <mutex>
 
+template <typename T>
 class Singleton {
 public:
-    static Singleton& getInstance();
-
-    void showMessage() const;
+    static T& getInstance();
 
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
@@ -15,9 +14,9 @@ public:
     Singleton(Singleton&&) = delete;
     Singleton& operator=(Singleton&&) = delete;
 
-private:
+protected:
     Singleton();
-    ~Singleton();
+    virtual ~Singleton();
 };
 
-#endif
+#endif 
