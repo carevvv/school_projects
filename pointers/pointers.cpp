@@ -155,14 +155,15 @@ namespace pointers {
 
     template <typename T>
     shared_ptr<T>::~shared_ptr() {
-        if (this->num_shared && --(*this->num_shared) == 0) {
-            delete this->data;
-            delete this->num_shared;
-            if (this->num_weak && *this->num_weak == 0) {
-                delete this->num_weak;
-            }
-        }
-    }
+          if (num_shared && --(*num_shared) == 0) {
+              delete data;
+              delete num_shared;
+              delete num_weak;
+          } else if (!data) {
+              delete num_shared;
+              delete num_weak;
+          }
+      }
 
     
     template <typename T>
@@ -256,21 +257,10 @@ namespace pointers {
 
     template <typename T>
     void weak_ptr<T>::release() {
-        if (this->num_weak) {
-            --(*this->num_weak);
-            iif (*this->num_shared == 0 && *this->num_weak == 0) {
-                delete this->num_shared;
-                delete this->num_weak;
-                num_shared = nullptr;
-                num_weak = nullptr;
-                data = nullptr;
-            }
-        }
-        this->data = nullptr;
-        this->num_shared = nullptr;
-        this->num_weak = nullptr;
-    }
-    
+          if (num_weak && --(*num_weak) == 0 && *num_shared == 0) {
+              delete num_weak;
+          }
+      }
     template <typename T>
     bool weak_ptr<T>::expired() const {
         return !this->num_shared || *this->num_shared == 0;

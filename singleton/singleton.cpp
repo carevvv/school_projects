@@ -4,8 +4,8 @@
 
 
 template <typename T>
-T& Singleton<T>::getInstance() {
-    static T instance;
+Singleton<T>& Singleton<T>::getInstance() {
+    static Singleton<T> instance; 
     std::cout << "Singleton instance returned." << std::endl;
     return instance;
 }
@@ -24,7 +24,7 @@ Singleton<T>::~Singleton() {
 int 
 main(void) {
     try {
-        Singleton<int>::getInstance(); 
+        Singleton<int>& singletonInstance = Singleton<int>::getInstance();
     }
     catch (...) {
         return EXIT_FAILURE;
