@@ -157,7 +157,6 @@ int main(void) {
     std::cout << "Enter an expression: ";
     std::getline(std::cin, input);
 
-    // Заменяем все вхождения ** на ^
     size_t pos = 0;
     while ((pos = input.find("**", pos)) != std::string::npos) {
         input.replace(pos, 2, "^");
