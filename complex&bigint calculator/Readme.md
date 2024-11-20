@@ -40,8 +40,8 @@ g++ example.cpp bigint.cpp complex.cpp -o example.exe
 
 - Длинная арифметика:
     ```bash
-    123456789 * 987654321
-    (10^100) + 1
+    1234567afaffae9 * 98765ee4321
+    ((a) * (-e)) + 1
     ```
 
 - Комплексные числа:
