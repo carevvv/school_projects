@@ -338,6 +338,7 @@ BigInt BigInt::calculate(const std::string& expression) {
     std::string expr_copy = expression;
     std::deque<char> input_deq;
     size_t pos = 0;
+    expr_copy.erase(std::remove_if(expr_copy.begin(), expr_copy.end(), ::isspace), expr_copy.end());
     while ((pos = expr_copy.find("**", pos)) != std::string::npos) {
         expr_copy.replace(pos, 2, "^");
         pos += 1;
@@ -400,11 +401,10 @@ BigInt::get_priority(char op) {
 }
 
 
-std::deque<std::string> 
-BigInt::infix_to_postfix(const std::deque<char>& input_deq) {
+std::deque<std::string> BigInt::infix_to_postfix(const std::deque<char>& input_deq) {
     std::deque<std::string> output;
     std::stack<char> stack;
-    
+
     std::string num = "";
     bool last_was_operator = true;
 
@@ -429,23 +429,33 @@ BigInt::infix_to_postfix(const std::deque<char>& input_deq) {
                     output.push_back(std::string(1, stack.top()));
                     stack.pop();
                 }
+                if (stack.empty()) {
+                    throw std::invalid_argument("Unmatched brackets: '('");
+                }
                 stack.pop();
                 last_was_operator = false;
             }
-            else if (ch == '+' || ch == '-' || ch == '*') {
+            else if (ch == '+' || ch == '-' || ch == '*' ) { 
+                if (ch == '/' || ch == '^') {
+                    throw std::invalid_argument(std::string("Operator '") + ch + "' is not supported");
+                }
+
                 if (ch == '-' && last_was_operator) {
                     if (i + 1 < input_deq.size() && isHexDigit(input_deq[i+1])) {
                         num += ch;
                         continue;
                     }
                 }
-                
+
                 while (!stack.empty() && get_priority(ch) <= get_priority(stack.top())) {
                     output.push_back(std::string(1, stack.top()));
                     stack.pop();
                 }
                 stack.push(ch);
                 last_was_operator = true;
+            }
+            else {
+                throw std::invalid_argument(std::string("Incorrect operator in expression: '") + ch + "'");
             }
         }
     }
@@ -455,6 +465,9 @@ BigInt::infix_to_postfix(const std::deque<char>& input_deq) {
     }
 
     while (!stack.empty()) {
+        if (stack.top() == '(' || stack.top() == ')') {
+            throw std::invalid_argument("Incorrect brackets");
+        }
         output.push_back(std::string(1, stack.top()));
         stack.pop();
     }
@@ -462,36 +475,50 @@ BigInt::infix_to_postfix(const std::deque<char>& input_deq) {
     return output;
 }
 
-BigInt 
-BigInt::evaluate_postfix(const std::deque<std::string>& postfix) {
+BigInt BigInt::evaluate_postfix(const std::deque<std::string>& postfix) {
     std::stack<BigInt> stack; 
     for (const std::string& token : postfix) {
-        if (isHexDigit(token[0]) || (token[0] == '-' && token.length() > 1)) {
-            BigInt num(token);
-            stack.push(num);
-        } else {
+        if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
+            if (stack.size() < 2) {
+                throw std::invalid_argument("Not enough operands for operator: '" + token + "'");
+            }
+
             BigInt num2 = stack.top(); 
             stack.pop();
             BigInt num1 = stack.top(); 
             stack.pop();
             BigInt result;
-            switch(token[0]) {
-                case '+': 
-                    result = num1 + num2; 
-                    break;
-                case '-': 
-                    result = num1 - num2; 
-                    break;
-                case '*': 
-                    result = num1 * num2;
-                    break; 
+
+            if (token == "+" || token == "-" || token == "*") {
+                switch(token[0]) {
+                    case '+': 
+                        result = num1 + num2; 
+                        break;
+                    case '-': 
+                        result = num1 - num2; 
+                        break;
+                    case '*': 
+                        result = num1 * num2;
+                        break;
+                }
+                stack.push(result);
             }
-            stack.push(result);
+            else {
+                throw std::invalid_argument(std::string("Operator '") + token + "' is not supported");
+            }
         }
+        else {
+            BigInt num(token);
+            stack.push(num);
+        }
+    }
+    if (stack.size() != 1) {
+        throw std::invalid_argument("Incorrect expression");
     }
 
     return stack.top();
 }
+
 
 BigInt BigInt::operator/(const BigInt &x) const {
     std::logic_error("Function / not implemented in class BigInt");

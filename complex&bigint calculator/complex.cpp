@@ -231,9 +231,12 @@ Complex::operator-() const {
 
 Complex 
 Complex::operator^(const double x) const {
+    if (this->re == 0) {
+        return Complex(-1, 0);
+    }
     double magnitude = sqrt(this->re * this->re + this->im * this->im); 
-    double angle = atan2(im, re);             
-    double magnitude_n = pow(magnitude, x);  
+    double angle = atan2(im, re); 
+    double magnitude_n = pow(magnitude, x);
     double angle_n = angle * x;
 
     double real_part = magnitude_n * cos(angle_n); 
@@ -358,101 +361,106 @@ Complex::get_priority(char op) {
     }
 }
 
-std::deque<std::string> 
-Complex::infix_to_postfix(const std::deque<char>& input_deq) {
+std::deque<std::string> Complex::infix_to_postfix(const std::deque<char>& input_deq) {
     std::deque<std::string> output;
     std::stack<char> stack;
     
     std::string num = "";
     bool last_was_operator = true;
-    bool parsing_complex = false;
+    size_t i = 0;
 
-    for (size_t i = 0; i < input_deq.size(); ++i) {
+    while (i < input_deq.size()) {
         char ch = input_deq[i];
         
-        if (isdigit(ch) || ch == '.' || (parsing_complex && (ch == 'i' || ch == '+' || ch == '-'))) {
+        if (std::isdigit(ch) || ch == '.') {
             num += ch;
-            if (num.back() == 'i') {
-                parsing_complex = false;
-                output.push_back(num);
-                num = "";
-                last_was_operator = false;
-            } else {
-                parsing_complex = true;
-                last_was_operator = false;
+            i++;
+            while (i < input_deq.size() && (std::isdigit(input_deq[i]) || input_deq[i] == '.')) {
+                num += input_deq[i];
+                i++;
             }
-        } else {
-            if (!num.empty()) {
-                if (!parsing_complex) {
-                    output.push_back(num + "i");
-                } else {
-                    output.push_back(num);
-                }
-                num = "";
-                parsing_complex = false;
+            if (i < input_deq.size() && input_deq[i] == 'i') {
+                num += 'i';
+                i++;
             }
-
-            if (ch == '(') {
-                stack.push(ch);
-                last_was_operator = true;
-            } 
-            else if (ch == ')') {
-                while (!stack.empty() && stack.top() != '(') {
-                    output.push_back(std::string(1, stack.top()));
-                    stack.pop();
-                }
+            output.push_back(num);
+            num = "";
+            last_was_operator = false;
+        }
+        else if (ch == 'i') {
+            output.push_back("1i");
+            i++;
+            last_was_operator = false;
+        }
+        else if (ch == '(') {
+            stack.push(ch);
+            i++;
+            last_was_operator = true;
+        }
+        else if (ch == ')') {
+            while (!stack.empty() && stack.top() != '(') {
+                output.push_back(std::string(1, stack.top()));
                 stack.pop();
-                last_was_operator = false;
             }
-            else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^') {
-                if (ch == '-' && last_was_operator) {
-                    if (i + 1 < input_deq.size() && (isdigit(input_deq[i+1]) || input_deq[i+1] == '.')) {
-                        num += ch;
-                        continue;
-                    }
-                }
-                
-                while (!stack.empty() && get_priority(ch) <= get_priority(stack.top())) {
-                    output.push_back(std::string(1, stack.top()));
-                    stack.pop();
-                }
-                stack.push(ch);
-                last_was_operator = true;
+            if (!stack.empty()) {
+                stack.pop(); 
             }
+            i++;
+            last_was_operator = false;
+        }
+        else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^') {
+            if ((ch == '+' || ch == '-') && last_was_operator) {
+                output.push_back("0");
+            }
+            while (!stack.empty() && get_priority(ch) <= get_priority(stack.top())) {
+                if (ch == '^' && stack.top() == '^') {
+                    break;
+                }
+                output.push_back(std::string(1, stack.top()));
+                stack.pop();
+            }
+            stack.push(ch);
+            i++;
+            last_was_operator = true;
+        }
+        else {
+            std::cerr << "Error: invalid character '" << ch << "' in expression" << std::endl;
+            throw std::invalid_argument(std::string("Invalid character: ") + ch);
         }
     }
 
     if (!num.empty()) {
-        if (!parsing_complex) {
-            output.push_back(num + "i");
-        } else {
-            output.push_back(num);
-        }
+        output.push_back(num);
     }
 
     while (!stack.empty()) {
+        if (stack.top() == '(' || stack.top() == ')') {
+            std::cerr << "Error: mismatched parentheses" << std::endl;
+            throw std::invalid_argument("Mismatched parentheses");
+        }
         output.push_back(std::string(1, stack.top()));
+
         stack.pop();
     }
 
     return output;
 }
 
-Complex 
-Complex::evaluate_postfix(const std::deque<std::string>& postfix) {
+
+Complex Complex::evaluate_postfix(const std::deque<std::string>& postfix) {
     std::stack<Complex> stack; 
     for (const std::string& token : postfix) {
-        if (isdigit(token[0]) || 
-            token.find('i') != std::string::npos || 
-            (token[0] == '-' && (isdigit(token[1]) || token[1] == '.'))) {
-            Complex num(token);
-            stack.push(num);
-        } else {
+        if (token == "+" || token == "-" || token == "*" || token == "/" || token == "^") {
+            if (stack.size() < 2) {
+                throw std::invalid_argument("Not enough operands for operator: " + token);
+            }
+
             Complex num2 = stack.top(); 
             stack.pop();
             Complex num1 = stack.top(); 
             stack.pop();
             Complex result;
+
             switch(token[0]) {
                 case '+': 
                     result = num1 + num2; 
@@ -466,12 +474,27 @@ Complex::evaluate_postfix(const std::deque<std::string>& postfix) {
                 case '/':
                     result = num1 / num2;
                     break;
-                case '^':
-                    result = num1 ^ num2.re;
+                case '^': {
+                    if (std::abs(num2.im) != 0) {
+                        throw std::invalid_argument("Complex exponentiation is not supported.");
+                    }
+                    int exponent = static_cast<int>(num2.re);
+                    result = num1 ^ exponent;
                     break;
+                }
+                default:
+                    throw std::invalid_argument("Unknown operator: " + token);
             }
             stack.push(result);
         }
+        else {
+            Complex num(token);
+            stack.push(num);
+        }
+    }
+
+    if (stack.size() != 1) {
+        throw std::invalid_argument("Incorrect postfix expression");
     }
 
     return stack.top();
