@@ -1,6 +1,6 @@
 # computer science 11th grade with love
 
-![tenor](https://tenor.com/ru/view/nerd-nerdy-nerds-nerd-emoji-gif-25380417)
+![tenor](https://media1.tenor.com/m/xCc58fEqFREAAAAd/nerd-nerdy.gif)
 
 ## Discription
 
